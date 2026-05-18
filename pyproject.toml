@@ -1,0 +1,7 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-ra --strict-markers"
+markers = [
+    "live: tests that hit a real Solplanet dongle (skipped unless SOLPLANET_HOST is set)",
+]

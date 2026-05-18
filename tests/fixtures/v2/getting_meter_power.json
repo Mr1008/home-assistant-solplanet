@@ -1,0 +1,8 @@
+{
+  "status": 200,
+  "payload": {
+    "limitPower": 5000,
+    "exportEnable": 1,
+    "exportPower": 4000
+  }
+}

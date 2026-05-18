@@ -1,0 +1,9 @@
+{
+  "status": 200,
+  "payload": {
+    "sn": "MTR2024TEST0001",
+    "address": 1,
+    "equipModel": 11,
+    "ctRatio": 1
+  }
+}

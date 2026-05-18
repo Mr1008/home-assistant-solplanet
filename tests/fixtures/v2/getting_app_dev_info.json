@@ -1,0 +1,14 @@
+{
+  "status": 200,
+  "payload": {
+    "mainMeter": [
+      {
+        "sn": "MTR2024TEST0001",
+        "address": 1,
+        "equipModel": 11,
+        "type": 4
+      }
+    ],
+    "subMeter": []
+  }
+}

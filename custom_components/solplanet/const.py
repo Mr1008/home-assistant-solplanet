@@ -1,5 +1,7 @@
 """Constants for the Solplanet integration."""
 
+from datetime import timedelta
+
 DOMAIN = "solplanet"
 MANUFACTURER = "Solplanet"
 
@@ -10,6 +12,21 @@ DONGLE_IDENTIFIER = "dongle"
 
 CONF_INTERVAL = "interval"
 DEFAULT_INTERVAL = 60
+
+# Per-coordinator cadences. Telemetry endpoints poll fast; config/diagnostic endpoints poll slow.
+# After MAX_FAILED_UPDATES consecutive failures a coordinator switches to its error interval
+# until the next success, giving a flaky dongle breathing room.
+INVERTER_UPDATE_INTERVAL = timedelta(seconds=30)
+BATTERY_UPDATE_INTERVAL = timedelta(seconds=30)
+METER_UPDATE_INTERVAL = timedelta(seconds=30)
+DONGLE_UPDATE_INTERVAL = timedelta(minutes=5)
+CONFIG_UPDATE_INTERVAL = timedelta(minutes=15)
+
+INVERTER_ERROR_INTERVAL = timedelta(minutes=5)
+BATTERY_ERROR_INTERVAL = timedelta(minutes=5)
+METER_ERROR_INTERVAL = timedelta(minutes=5)
+DONGLE_ERROR_INTERVAL = timedelta(minutes=30)
+CONFIG_ERROR_INTERVAL = timedelta(minutes=30)
 
 INVERTER_ERROR_CODES = {
     0: "No error",

@@ -1,0 +1,11 @@
+{
+  "psn": "DG2024TEST0001",
+  "ethmac": "AA:BB:CC:DD:EE:01",
+  "wlanmac": "AA:BB:CC:DD:EE:02",
+  "nam": "Test Dongle",
+  "brd": "Solplanet",
+  "muf": "Solplanet",
+  "mod": "DG-Test",
+  "hw": "1.0",
+  "sw": "2.1.5"
+}

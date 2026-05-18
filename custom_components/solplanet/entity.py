@@ -1,5 +1,7 @@
 """Solplanet base entity."""
 
+from __future__ import annotations
+
 from collections import abc
 from dataclasses import dataclass
 import logging
@@ -11,7 +13,7 @@ from homeassistant.helpers.entity import Entity, EntityDescription
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, INVERTER_IDENTIFIER
-from .coordinator import SolplanetDataUpdateCoordinator
+from .coordinator import SolplanetCoordinatorBase, SolplanetRuntime
 from .exceptions import InverterInSleepModeError
 
 _LOGGER = logging.getLogger(__name__)
@@ -19,7 +21,12 @@ _LOGGER = logging.getLogger(__name__)
 
 @dataclass(frozen=True, kw_only=True)
 class SolplanetEntityDescription(EntityDescription):
-    """Describe Solplanet sensor entity."""
+    """Describe a Solplanet entity.
+
+    `data_field_device_type` + `data_field_data_type` identify the slice of
+    `coordinator.data` this entity reads. They are also used at platform setup
+    to resolve which coordinator owns the slice (see `SolplanetRuntime.coordinator_for`).
+    """
 
     data_field_device_type: str
     data_field_path: list[str | int]
@@ -31,26 +38,30 @@ class SolplanetEntityDescription(EntityDescription):
     attributes_fn: abc.Callable[[Any], dict[str, Any]] | None = None
 
 
-class SolplanetEntity(CoordinatorEntity, Entity):
-    """Base class for Solplanet entities backed by the coordinator.
+class SolplanetEntity(CoordinatorEntity[SolplanetCoordinatorBase], Entity):
+    """Base class for Solplanet entities backed by a single coordinator.
 
     Notes:
     - Do not set `entity_id` manually. Home Assistant assigns it via the entity registry.
     - Use `unique_id` for stable entity IDs across restarts.
+    - The `runtime` attribute is kept on the entity for callers that need to invoke
+      cross-coordinator setters (writes always live on the runtime).
     """
 
     entity_description: SolplanetEntityDescription
     unique_id_suffix: str
+    runtime: SolplanetRuntime
 
     def __init__(
         self,
         description: SolplanetEntityDescription,
         isn: str,
-        coordinator: SolplanetDataUpdateCoordinator,
+        coordinator: SolplanetCoordinatorBase,
     ) -> None:
         """Initialize the entity."""
         super().__init__(coordinator)
         self.entity_description = description
+        self.runtime = coordinator.runtime
         self.unique_id_suffix = (
             description.unique_id_suffix
             if description.unique_id_suffix
@@ -58,14 +69,14 @@ class SolplanetEntity(CoordinatorEntity, Entity):
         )
         self._isn = isn
 
-        # Stable unique_id for the entity registry
+        # Stable unique_id for the entity registry.
         self._attr_unique_id = (
             f"solplanet_{isn}_{self.unique_id_suffix}"
             if description.data_field_device_type == INVERTER_IDENTIFIER
             else f"solplanet_{self.entity_description.data_field_device_type}_{isn}_{self.unique_id_suffix}"
         )
 
-        # Set initial value (may be None if inverter is sleeping / data not ready yet)
+        # Set initial value (may be None if inverter is sleeping / data not ready yet).
         self._set_native_value()
 
     @callback
@@ -128,10 +139,10 @@ class SolplanetEntity(CoordinatorEntity, Entity):
         return data
 
     def has_value_in_response(self) -> bool:
-        """Return if entity has a non-None value in the latest coordinator payload.
+        """Return True if entity has a non-None value in the latest coordinator payload.
 
-        Note: avoid using this to decide whether to add entities. If the inverter is slow/sleeping
-        at startup, entities would never be created.
+        Note: avoid using this to decide whether to add entities. If the inverter is
+        slow/sleeping at startup, entities would never be created.
         """
         try:
             return self._get_value_from_coordinator() is not None
@@ -142,16 +153,15 @@ class SolplanetEntity(CoordinatorEntity, Entity):
     def available(self) -> bool:
         """Return entity availability.
 
-        Keep entities available when the coordinator update succeeded but a specific value is
-        missing (e.g. inverter sleeping). Only mark unavailable when the coordinator update failed.
+        Keep entities available when the coordinator update succeeded but a specific
+        value is missing (e.g. inverter sleeping). Only mark unavailable when the
+        coordinator update failed.
         """
-        if not self.coordinator.last_update_success:
-            return False
-        return True
+        return self.coordinator.last_update_success
 
     @property
     def device_info(self) -> DeviceInfo:
-        """Return device information about this sensor."""
+        """Return device information about this entity."""
         return (
             {
                 "identifiers": {(DOMAIN, self._isn)},

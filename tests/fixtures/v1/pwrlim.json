@@ -1,0 +1,18 @@
+{
+  "mod": 0,
+  "enb": 1,
+  "exp_m": 0,
+  "regulate": 0,
+  "enb_PF": 0,
+  "target_PF": 100,
+  "total_pac": 800,
+  "total_fac": 5000,
+  "meter_pac": -300,
+  "sn": "MTR2020V1TEST01",
+  "manufactory": "EASTRON",
+  "type": "SDM630",
+  "name": "Energy Meter",
+  "model": 0,
+  "abs": 0,
+  "offset": 0
+}

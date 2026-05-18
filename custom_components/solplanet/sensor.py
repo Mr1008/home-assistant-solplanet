@@ -49,7 +49,7 @@ from .const import (
     INVERTER_STATUS,
     METER_IDENTIFIER,
 )
-from .coordinator import SolplanetDataUpdateCoordinator
+from .coordinator import SolplanetCoordinatorBase, SolplanetRuntime
 from .entity import SolplanetEntity, SolplanetEntityDescription
 
 _LOGGER = logging.getLogger(__name__)
@@ -70,7 +70,7 @@ class SolplanetSensor(SolplanetEntity, SensorEntity):
         self,
         description: SolplanetSensorEntityDescription,
         isn: str,
-        coordinator: SolplanetDataUpdateCoordinator,
+        coordinator: SolplanetCoordinatorBase,
     ) -> None:
         """Initialize the sensor."""
         super().__init__(description=description, isn=isn, coordinator=coordinator)
@@ -129,7 +129,7 @@ def _create_dict_set_mapper(
 
 
 def create_inverter_entities_description(
-    coordinator: SolplanetDataUpdateCoordinator, isn: str
+    runtime: SolplanetRuntime, isn: str
 ) -> list[SolplanetSensorEntityDescription]:
     """Create entities for inverter."""
     sensors = [
@@ -282,7 +282,14 @@ def create_inverter_entities_description(
             ]
         )
 
-    data: GetInverterDataResponse = coordinator.data[INVERTER_IDENTIFIER][isn]["data"]
+    inverter_data = runtime.inverter.data or {}
+    data: GetInverterDataResponse | None = (
+        inverter_data.get(INVERTER_IDENTIFIER, {}).get(isn, {}).get("data")
+    )
+    if data is None:
+        # Inverter live data not available yet (sleeping / first refresh failed).
+        # MPPT/phase counts can't be determined; skip the dynamic entities.
+        return sensors
 
     for i in range(len(data.vac or [])):
         sensors.extend(
@@ -357,10 +364,21 @@ def create_inverter_entities_description(
 
 
 def create_meter_entities_description(
-    coordinator: SolplanetDataUpdateCoordinator, isn: str
+    runtime: SolplanetRuntime, isn: str
 ) -> list[SolplanetSensorEntityDescription]:
     """Create entities for meter."""
-    meter_entry = coordinator.data.get(METER_IDENTIFIER, {}).get(isn, {})
+    # Meter telemetry (data / app_data) lives on MeterCoord; meter config
+    # (app_info / meter_req / meter_power / info) lives on ConfigCoord.
+    # Merge both views for entity discovery only.
+    meter_entry: dict = {}
+    if runtime.meter is not None and runtime.meter.data:
+        meter_entry.update(
+            runtime.meter.data.get(METER_IDENTIFIER, {}).get(isn, {}) or {}
+        )
+    if runtime.config.data:
+        meter_entry.update(
+            runtime.config.data.get(METER_IDENTIFIER, {}).get(isn, {}) or {}
+        )
 
     # V2: meters are sourced from `POST /getting.cgi` and stored under `app_data`.
     # V1: meters come from the legacy endpoints and are stored under `data`/`info`.
@@ -597,7 +615,7 @@ def create_meter_entities_description(
 
 
 def create_dongle_entities_description(
-    coordinator: SolplanetDataUpdateCoordinator, dongle_id: str
+    runtime: SolplanetRuntime, dongle_id: str
 ) -> list[SolplanetSensorEntityDescription]:
     """Create diagnostic entities for the dongle (V2)."""
 

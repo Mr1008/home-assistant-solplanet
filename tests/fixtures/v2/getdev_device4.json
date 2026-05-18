@@ -1,0 +1,27 @@
+{
+  "type": 1,
+  "mod_r": 2,
+  "isn": "INV2024TEST0001",
+  "stu_r": 1,
+  "muf": 5,
+  "mod": 12,
+  "num": 1,
+  "fir_r": 100,
+  "charging": 0,
+  "charge_max": 95,
+  "discharge_max": 20,
+  "battery": {
+    "bid": 1,
+    "devtype": "Ai-LB",
+    "manufactoty": "Solplanet",
+    "partno": "BAT2024TEST0001",
+    "model1sn": "MOD-001",
+    "modeltotal": 1,
+    "monomertotoal": 16,
+    "monomerinmodel": 16,
+    "ratedvoltage": 512,
+    "capacity": 5000,
+    "hardwarever": "1.0",
+    "softwarever": "1.2.3"
+  }
+}
